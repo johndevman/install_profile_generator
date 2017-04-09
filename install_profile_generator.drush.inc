@@ -59,7 +59,7 @@ function drush_install_profile_generator_install_profile_generate() {
     return TRUE;
   }
 
-  // Do stuff.
+  // Create the profile directory.
   $profile_path = \DRUPAL::root() . '/profiles/' . $machine_name;
   /** @var \Drupal\Core\File\FileSystemInterface $file_system */
   $file_system = \Drupal::service('file_system');
@@ -69,6 +69,8 @@ function drush_install_profile_generator_install_profile_generate() {
       dt('Could not create @profile_path directory', ['@profile_path' => $profile_path])
     );
   }
+
+  // Create the profile .info.yml.
   $info = [
     'name' => $name,
     'type' => 'profile',
@@ -82,6 +84,17 @@ function drush_install_profile_generator_install_profile_generate() {
       dt('Could not write @profile_path/@machine_name.info.yml', ['@profile_path' => $profile_path, '@machine_name' => $machine_name])
     );
   }
+
+  // Create profile's config/sync directory.
+  if (!$file_system->mkdir($profile_path . '/config/sync', NULL, TRUE)) {
+    return drush_set_error(
+      'INSTALL_GENERATE_PROFILE_CREATE_PROFILE_DIRECTORY',
+      dt('Could not create @config_sync directory', ['@@config_sync' => $profile_path . '/config/sync'])
+    );
+  }
+
+  // Export configuration.
+  _drush_config_export('does_not_matter', $profile_path . '/config/sync', 'does_not_matter');
 }
 
 /**
