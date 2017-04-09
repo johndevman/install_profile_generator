@@ -56,7 +56,7 @@ function drush_install_profile_generator_install_profile_generate() {
 
   if (!install_profile_generator_confirm($name, $machine_name, $description)) {
     // The user has chosen to not continue. There's no error.
-    return TRUE;
+    return drush_user_abort();
   }
 
   // Create the profile directory.
@@ -94,7 +94,29 @@ function drush_install_profile_generator_install_profile_generate() {
   }
 
   // Export configuration.
-  _drush_config_export('does_not_matter', $profile_path . '/config/sync', 'does_not_matter');
+  $result = _drush_config_export('does_not_matter', $profile_path . '/config/sync', 'does_not_matter');
+  if (!$result) {
+    return FALSE;
+  }
+
+  // Change the site to use the new profile and sync directory.
+  $settings = [
+    'config_directories' => [
+      CONFIG_SYNC_DIRECTORY => (object) [
+        'value' => $profile_path . '/config/sync',
+        'required' => TRUE,
+      ],
+    ],
+  ];
+  // Rewrite settings.php, which also sets the value as global variable.
+  include_once \Drupal::root() . '/core/includes/install.inc';
+  drupal_rewrite_settings($settings);
+
+  $extension_config = \Drupal::configFactory()->getEditable('core.extension');
+  $extension_config->set('profile', $machine_name)->save();
+
+  $exported_config = new \Drupal\Core\Config\FileStorage($profile_path . '/config/sync');
+  $exported_config->write('core.extension', $extension_config->get());
 }
 
 /**
