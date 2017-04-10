@@ -139,7 +139,7 @@ function drush_install_profile_generator_install_profile_generate() {
   // Change the site to use the new sync directory if possible.
   $settings_file = \Drupal::service('site.path') . '/settings.php';
   $perms = NULL;
-  // Use a relative path for writing to settings.php
+  // Use a relative path for writing to settings.php.
   $profile_path = 'profiles/' . $machine_name;
   // Try and make settings.php writable.
   if (!is_writable($settings_file)) {
@@ -285,8 +285,9 @@ function install_profile_generator_extension_in_current_profile() {
 /**
  * Converts a name to a valid machine name.
  *
- * @param $name
+ * @param string $name
  *   A name to turn into a valid machine name.
+ *
  * @return string
  *   A valid machine name.
  */
