@@ -141,10 +141,15 @@ function drush_install_profile_generator_install_profile_generate() {
     );
   }
 
-  // We've changed the install profile and which extensions are running.
-  drush_cache_rebuild();
+  // @todo We've changed the install profile and which extensions are running.
 
   drush_log(dt('Created new installation profile and exported configuration to it. The "Install Profile Generator" module has been uninstalled. To update the profile with any configuration changes use the "drush config-export" command.'), LogLevel::OK);
+
+  // Test that core can do configuration installs.
+  include_once \Drupal::root() . '/core/includes/install.core.inc';
+  if (!function_exists('install_config_import_batch')) {
+    drush_log(dt('In order to fully benefit from your new install profile you need to apply the latest patch on https://www.drupal.org/node/2788777.'), LogLevel::WARNING);
+  }
   return TRUE;
 }
 
