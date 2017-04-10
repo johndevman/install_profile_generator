@@ -107,19 +107,25 @@ function drush_install_profile_generator_install_profile_generate() {
     return FALSE;
   }
 
-  // Change the site to use the new profile and sync directory.
-  $settings = [
-    'config_directories' => [
-      CONFIG_SYNC_DIRECTORY => (object) [
-        'value' => $profile_path . '/config/sync',
-        'required' => TRUE,
-      ],
-    ],
+  // Change the site to use the new sync directory. Include any other config
+  // directories in the rewritten settings.php variable.
+  global $config_directories;
+  $settings = ['config_directories' => []];
+  foreach ($config_directories as $key => $config_directory) {
+    $settings['config_directories'][$key] = (object) [
+      'value' => $config_directory,
+      'required' => TRUE,
+    ];
+  }
+  $settings['config_directories'][CONFIG_SYNC_DIRECTORY] = (object) [
+    'value' => $profile_path . '/config/sync',
+    'required' => TRUE,
   ];
   // Rewrite settings.php, which also sets the value as global variable.
   include_once \Drupal::root() . '/core/includes/install.inc';
   drupal_rewrite_settings($settings);
 
+  // Change the site to use the new installation profile.
   $extension_config = \Drupal::configFactory()->getEditable('core.extension');
   $current_profile = $extension_config->get('profile');
   $extension_config
@@ -137,7 +143,7 @@ function drush_install_profile_generator_install_profile_generate() {
   if (!$exported_config->write('core.extension', $extension_config->get())) {
     return drush_set_error(
       'INSTALL_GENERATE_PROFILE_EXPORT_CONFIG',
-      dt('Could not write exported configuration to @config_sync directory', ['@@config_sync' => $profile_path . '/config/sync'])
+      dt('Could not write exported configuration to @config_sync directory', ['@config_sync' => $profile_path . '/config/sync'])
     );
   }
 
