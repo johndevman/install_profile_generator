@@ -107,24 +107,6 @@ function drush_install_profile_generator_install_profile_generate() {
     return FALSE;
   }
 
-  // Change the site to use the new sync directory. Include any other config
-  // directories in the rewritten settings.php variable.
-  global $config_directories;
-  $settings = ['config_directories' => []];
-  foreach ($config_directories as $key => $config_directory) {
-    $settings['config_directories'][$key] = (object) [
-      'value' => $config_directory,
-      'required' => TRUE,
-    ];
-  }
-  $settings['config_directories'][CONFIG_SYNC_DIRECTORY] = (object) [
-    'value' => $profile_path . '/config/sync',
-    'required' => TRUE,
-  ];
-  // Rewrite settings.php, which also sets the value as global variable.
-  include_once \Drupal::root() . '/core/includes/install.inc';
-  drupal_rewrite_settings($settings);
-
   // Change the site to use the new installation profile.
   $extension_config = \Drupal::configFactory()->getEditable('core.extension');
   $current_profile = $extension_config->get('profile');
@@ -153,6 +135,47 @@ function drush_install_profile_generator_install_profile_generate() {
   // We've changed the install profile and which extensions are running. We need
   // to use the hammer.
   drupal_flush_all_caches();
+
+  // Change the site to use the new sync directory if possible.
+  $settings_file = \Drupal::service('site.path') . '/settings.php';
+  $perms = NULL;
+  // Use a relative path for writing to settings.php
+  $profile_path = 'profiles/' . $machine_name;
+  // Try and make settings.php writable.
+  if (!is_writable($settings_file)) {
+    $perms = fileperms($settings_file);
+    @$file_system->chmod($settings_file, 0644);
+  }
+
+  if (is_writable($settings_file)) {
+    // Include any other config directories in the rewritten settings.php
+    // variable.
+    global $config_directories;
+    $settings = ['config_directories' => []];
+    foreach ($config_directories as $key => $config_directory) {
+      $settings['config_directories'][$key] = (object) [
+        'value' => $config_directory,
+        'required' => TRUE,
+      ];
+    }
+    $settings['config_directories'][CONFIG_SYNC_DIRECTORY] = (object) [
+      'value' => $profile_path . '/config/sync',
+      'required' => TRUE,
+    ];
+    // Rewrite settings.php, which also sets the value as global variable.
+    include_once \Drupal::root() . '/core/includes/install.inc';
+    drupal_rewrite_settings($settings);
+  }
+
+  // If we couldn't write to settings.php tell the user what to do.
+  if (!is_writable($settings_file)) {
+    drush_log(dt("Add the following line to $settings_file\n\$config_directories['blah'] = '$profile_path/config/sync';\n"), LogLevel::INFO);
+  }
+
+  // Change the permissions back if we changed them.
+  if ($perms) {
+    @$file_system->chmod($settings_file, $perms);
+  }
 
   drush_log(dt('Created new installation profile and exported configuration to it. The "Install Profile Generator" module has been uninstalled. To update the profile with any configuration changes use the "drush config-export" command.'), LogLevel::OK);
 
@@ -208,11 +231,6 @@ function install_profile_generator_validate($name, $machine_name) {
     return drush_set_error('INSTALL_GENERATE_PROFILE_PROFILE_DIRECTORY', dt('Can not write to the /profiles directory'));
   }
 
-  // Ensure we can write to settings.php.
-  $settings_file = \Drupal::service('site.path') . '/settings.php';
-  if (!is_writable($settings_file)) {
-    return drush_set_error('INSTALL_GENERATE_PROFILE_PROFILE_DIRECTORY', dt('Can not write to @settings', ['@settings' => $settings_file]));
-  }
   return TRUE;
 }
 
