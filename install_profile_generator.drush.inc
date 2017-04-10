@@ -121,9 +121,16 @@ function drush_install_profile_generator_install_profile_generate() {
   drupal_rewrite_settings($settings);
 
   $extension_config = \Drupal::configFactory()->getEditable('core.extension');
+  $current_profile = $extension_config->get('profile');
   $extension_config
+    // Change the current profile to the generator profile.
     ->set('profile', $machine_name)
+    // Uninstall the Install Profile Generator module - it is a one time thing.
     ->clear('module.install_profile_generator')
+    // Uninstall the current install profile.
+    ->clear('module.' . $current_profile)
+    // Install the current install profile. It will automatically go at the end.
+    ->set('module.' . $machine_name, 1000)
     ->save();
 
   $exported_config = new FileStorage($profile_path . '/config/sync');
@@ -133,6 +140,9 @@ function drush_install_profile_generator_install_profile_generate() {
       dt('Could not write exported configuration to @config_sync directory', ['@@config_sync' => $profile_path . '/config/sync'])
     );
   }
+
+  // We've changed the install profile and which extensions are running.
+  drush_cache_rebuild();
 
   drush_log(dt('Created new installation profile and exported configuration to it. The "Install Profile Generator" module has been uninstalled. To update the profile with any configuration changes use the "drush config-export" command.'), LogLevel::OK);
   return TRUE;
