@@ -139,6 +139,9 @@ function drush_install_profile_generator_install_profile_generate() {
     ->set('module.' . $machine_name, 1000)
     ->save();
 
+  // Make the same changes to the already exported configuration. We do it this
+  // way around so that we can be sure the configuration export and the
+  // core.extension update is successful.
   $exported_config = new FileStorage($profile_path . '/config/sync');
   if (!$exported_config->write('core.extension', $extension_config->get())) {
     return drush_set_error(
