@@ -141,7 +141,8 @@ function drush_install_profile_generator_install_profile_generate() {
     );
   }
 
-  // @todo We've changed the install profile and which extensions are running.
+  // @todo We've changed the install profile and which extensions are running
+  //   therefore we probably should force some sort of cache rebuild.
 
   drush_log(dt('Created new installation profile and exported configuration to it. The "Install Profile Generator" module has been uninstalled. To update the profile with any configuration changes use the "drush config-export" command.'), LogLevel::OK);
 
