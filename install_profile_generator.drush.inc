@@ -8,6 +8,7 @@
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Language\LanguageInterface;
 use Drupal\Core\Serialization\Yaml;
+use Drush\Log\LogLevel;
 
 /**
  * Implements hook_drush_command().
@@ -123,7 +124,10 @@ function drush_install_profile_generator_install_profile_generate() {
   drupal_rewrite_settings($settings);
 
   $extension_config = \Drupal::configFactory()->getEditable('core.extension');
-  $extension_config->set('profile', $machine_name)->save();
+  $extension_config
+    ->set('profile', $machine_name)
+    ->clear('module.install_profile_generator')
+    ->save();
 
   $exported_config = new FileStorage($profile_path . '/config/sync');
   if (!$exported_config->write('core.extension', $extension_config->get())) {
@@ -133,6 +137,7 @@ function drush_install_profile_generator_install_profile_generate() {
     );
   }
 
+  drush_log(dt('Created new installation profile and exported configuration to it. The "Install Profile Generator" module has been uninstalled. To update the profile with any configuration changes use the "drush config-export" command.'), LogLevel::OK);
   return TRUE;
 }
 
@@ -150,7 +155,7 @@ function drush_install_profile_generator_install_profile_generate() {
  */
 function install_profile_generator_validate($name, $machine_name) {
   // Check if modules/theme exist in current profile folder.
-  if (!install_profile_generator_extension_in_current_profile()) {
+  if (install_profile_generator_extension_in_current_profile()) {
     return drush_set_error('INSTALL_GENERATE_PROFILE_EXTENSION_IN_CURRENT_PROFILE', dt('The current profile contains extensions. It is not possible to generate a new profile using Drush.'));
   }
 
