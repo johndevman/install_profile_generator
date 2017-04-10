@@ -49,10 +49,7 @@ function drush_install_profile_generator_install_profile_generate() {
 
   if ($name && empty($machine_name)) {
     // Generate machine name from name.
-    $new_value = \Drupal::transliteration()->transliterate($name, LanguageInterface::LANGCODE_DEFAULT, '_');
-    $new_value = strtolower($new_value);
-    $new_value = preg_replace('/[^a-z0-9_]+/', '_', $new_value);
-    $machine_name = preg_replace('/_+/', '_', $new_value);
+    $machine_name = _install_profile_generator_convert_to_machine_name($name);
   }
 
   if ($machine_name && empty($name)) {
@@ -164,6 +161,11 @@ function install_profile_generator_validate($name, $machine_name) {
     return drush_set_error('INSTALL_GENERATE_PROFILE_EXTENSION_NO_NAME', dt('To generate a new profile using Drush you have to provide a name or a machine name for the new profile.'));
   }
 
+  // Ensure we have a valid machine name.
+  if ($machine_name !== _install_profile_generator_convert_to_machine_name($machine_name)) {
+    return drush_set_error('INSTALL_GENERATE_PROFILE_INVALID_MACHINE_NAME', dt('To generate a new profile using Drush you have to provide a valid machine name. Can only contain lowercase letters, numbers, and underscores.'));
+  }
+
   // Ensure we won't create a profile with the same name as an existing
   // extension.
   if (\Drupal::moduleHandler()->moduleExists($machine_name) ||
@@ -234,4 +236,19 @@ function install_profile_generator_extension_in_current_profile() {
     }
   }
   return $has_extension_in_current_profile;
+}
+
+/**
+ * Converts a name to a valid machine name.
+ *
+ * @param $name
+ *   A name to turn into a valid machine name.
+ * @return string
+ *   A valid machine name.
+ */
+function _install_profile_generator_convert_to_machine_name($name) {
+  $new_value = \Drupal::transliteration()->transliterate($name, LanguageInterface::LANGCODE_DEFAULT, '_');
+  $new_value = strtolower($new_value);
+  $new_value = preg_replace('/[^a-z0-9_]+/', '_', $new_value);
+  return preg_replace('/_+/', '_', $new_value);
 }
