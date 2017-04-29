@@ -169,7 +169,7 @@ function drush_install_profile_generator_install_profile_generate() {
 
   // If we couldn't write to settings.php tell the user what to do.
   if (!is_writable($settings_file)) {
-    drush_log(dt("Add the following line to $settings_file\n\$config_directories['blah'] = '$profile_path/config/sync';\n"), LogLevel::INFO);
+    drush_log(dt("Add the following line to $settings_file\n\$config_directories[CONFIG_SYNC_DIRECTORY] = '$profile_path/config/sync';\n"), LogLevel::WARNING);
   }
 
   // Change the permissions back if we changed them.
