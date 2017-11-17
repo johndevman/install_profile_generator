@@ -41,6 +41,13 @@ class Helper implements HelperInterface {
   protected $transliteration;
 
   /**
+   * The install profile.
+   *
+   * @var string
+   */
+  protected $installProfile;
+
+  /**
    * Helper constructor.
    *
    * @param string $app_root
@@ -51,12 +58,15 @@ class Helper implements HelperInterface {
    *   Theme handler service.
    * @param \Drupal\Component\Transliteration\TransliterationInterface $transliteration
    *   Transliteration service.
+   * @param string $install_profile
+   *   The install profile.
    */
-  public function __construct($app_root, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, TransliterationInterface $transliteration) {
+  public function __construct($app_root, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, TransliterationInterface $transliteration, $install_profile) {
     $this->appRoot = $app_root;
     $this->moduleHandler = $module_handler;
     $this->themeHandler = $theme_handler;
     $this->transliteration = $transliteration;
+    $this->installProfile = $install_profile;
   }
 
   /**
@@ -114,15 +124,10 @@ class Helper implements HelperInterface {
    */
   protected function extensionInCurrentProfile() {
     $has_extension_in_current_profile = FALSE;
-
-    // @todo find how to get $profile without relying on \Drupal.
-    $profile = \Drupal::installProfile();
     $modules = $this->moduleHandler->getModuleList();
+    $profile_path = $modules[$this->installProfile]->getPath();
 
-    $profile_path = $modules[$profile]->getPath();
-
-    unset($modules[$profile]);
-
+    unset($modules[$this->installProfile]);
     foreach ($modules as $module) {
       if (strpos($module->getPath(), $profile_path) === 0) {
         $has_extension_in_current_profile = TRUE;

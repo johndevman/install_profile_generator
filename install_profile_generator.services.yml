@@ -1,5 +1,5 @@
 services:
   install_profile_generator.helper:
     class: Drupal\install_profile_generator\Services\Helper
-    arguments: ['@app.root', '@module_handler', '@theme_handler', '@transliteration']
+    arguments: ['@app.root', '@module_handler', '@theme_handler', '@transliteration', '%install_profile%']
 
