@@ -83,7 +83,6 @@ class Helper implements HelperInterface {
    * {@inheritdoc}
    */
   public function validate($name, $machine_name) {
-    // todo: change drush_set_error calls to throw exceptions.
     // Check if modules/theme exist in current profile folder.
     if ($this->extensionInCurrentProfile()) {
       throw new \Exception(dt('The current profile contains extensions. It is not possible to generate a new profile using Drush.'));
