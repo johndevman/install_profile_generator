@@ -59,7 +59,11 @@ function drush_install_profile_generator_install_profile_generate() {
     $name = $machine_name;
   }
 
-  if (!$helper->validate($name, $machine_name)) {
+  try {
+    $helper->validate($name, $machine_name);
+  }
+  catch (\Exception $e) {
+    drush_set_error('install_profile_generate_validate', $e->getMessage());
     // Exit with an error status.
     return FALSE;
   }
