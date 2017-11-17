@@ -1,0 +1,141 @@
+<?php
+
+namespace Drupal\install_profile_generator\Services;
+
+use Drupal\Component\Transliteration\TransliterationInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\Core\Extension\ThemeHandlerInterface;
+use Drupal\Core\Language\LanguageInterface;
+
+/**
+ * Class InstallProfileGenerator.
+ */
+class Helper implements HelperInterface {
+
+  /**
+   * Application root.
+   *
+   * @var string
+   */
+  protected $appRoot;
+
+  /**
+   * Module Handler service.
+   *
+   * @var \Drupal\Core\Extension\ModuleHandlerInterface
+   */
+  protected $moduleHandler;
+
+  /**
+   * Theme Handler service.
+   *
+   * @var \Drupal\Core\Extension\ThemeHandlerInterface
+   */
+  protected $themeHandler;
+
+  /**
+   * Transliteration service.
+   *
+   * @var \Drupal\Component\Transliteration\TransliterationInterface
+   */
+  protected $transliteration;
+
+  /**
+   * Helper constructor.
+   *
+   * @param string $app_root
+   *   App root service.
+   * @param \Drupal\Core\Extension\ModuleHandlerInterface $module_handler
+   *   Module handler service.
+   * @param \Drupal\Core\Extension\ThemeHandlerInterface $theme_handler
+   *   Theme handler service.
+   * @param \Drupal\Component\Transliteration\TransliterationInterface $transliteration
+   *   Transliteration service.
+   */
+  public function __construct($app_root, ModuleHandlerInterface $module_handler, ThemeHandlerInterface $theme_handler, TransliterationInterface $transliteration) {
+    $this->appRoot = $app_root;
+    $this->moduleHandler = $module_handler;
+    $this->themeHandler = $theme_handler;
+    $this->transliteration = $transliteration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function convertToMachineName($name) {
+    $new_value = $this->transliteration->transliterate($name, LanguageInterface::LANGCODE_DEFAULT, '_');
+    $new_value = strtolower($new_value);
+    $new_value = preg_replace('/[^a-z0-9_]+/', '_', $new_value);
+    return preg_replace('/_+/', '_', $new_value);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validate($name, $machine_name) {
+    // todo: change drush_set_error calls to throw exceptions.
+    // Check if modules/theme exist in current profile folder.
+    if ($this->extensionInCurrentProfile()) {
+      throw new \Exception(dt('The current profile contains extensions. It is not possible to generate a new profile using Drush.'));
+    }
+
+    // Ensure we have a name.
+    if (empty($machine_name) || empty($name) || $machine_name === TRUE || $name === TRUE) {
+      throw new \Exception(dt('To generate a new profile using Drush you have to provide a name or a machine name for the new profile.'));
+    }
+
+    // Ensure we have a valid machine name.
+    if ($machine_name !== $this->convertToMachineName($machine_name)) {
+      throw new \Exception(dt('To generate a new profile using Drush you have to provide a valid machine name. Can only contain lowercase letters, numbers, and underscores.'));
+    }
+
+    // Ensure we won't create a profile with the same name as an existing
+    // extension.
+    if ($this->moduleHandler->moduleExists($machine_name) ||
+      $this->themeHandler->themeExists($machine_name)
+    ) {
+      throw new \Exception(dt('The machine name @machine_name already exists', ['@machine_name' => $machine_name]));
+    }
+
+    // Ensure that the /profiles directory can be written too.
+    if (!is_writable($this->appRoot . '/profiles')) {
+      throw new \Exception(dt('Can not write to the @directory directory', ['@directory' => $this->appRoot . '/profiles']));
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Checks if the current installation profile contains modules or themes.
+   *
+   * @return bool
+   *   TRUE - current installation profile contains modules or themes.
+   *   FALSE - current installation profile does not contains modules or themes.
+   */
+  protected function extensionInCurrentProfile() {
+    $has_extension_in_current_profile = FALSE;
+
+    // @todo find how to get $profile without relying on \Drupal.
+    $profile = \Drupal::installProfile();
+    $modules = $this->moduleHandler->getModuleList();
+
+    $profile_path = $modules[$profile]->getPath();
+
+    unset($modules[$profile]);
+
+    foreach ($modules as $module) {
+      if (strpos($module->getPath(), $profile_path) === 0) {
+        $has_extension_in_current_profile = TRUE;
+      }
+    }
+
+    $themes = $this->themeHandler->listInfo();
+    foreach ($themes as $theme) {
+      if (strpos($theme->getPath(), $profile_path) === 0) {
+        $has_extension_in_current_profile = TRUE;
+      }
+    }
+    return $has_extension_in_current_profile;
+  }
+
+}
