@@ -4,7 +4,7 @@ namespace Drupal\install_profile_generator\Commands;
 
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Serialization\Yaml;
-use Drupal\install_profile_generator\Services\HelperInterface;
+use Drupal\install_profile_generator\Services\Validator;
 use Drush\Commands\DrushCommands;
 
 /**
@@ -13,20 +13,20 @@ use Drush\Commands\DrushCommands;
 class InstallProfileGeneratorCommands extends DrushCommands {
 
   /**
-   * Helper serivce to share code between drush 8 and 9.
+   * Validator service to share code between drush 8 and 9.
    *
-   * @var \Drupal\install_profile_generator\Services\HelperInterface
+   * @var \Drupal\install_profile_generator\Services\Validator
    */
-  protected $helper;
+  protected $validator;
 
   /**
    * InstallProfileGeneratorCommands constructor.
    *
-   * @param \Drupal\install_profile_generator\Services\HelperInterface $helper
+   * @param \Drupal\install_profile_generator\Services\Validator $validator
    *   Service to actually do the generation.
    */
-  public function __construct(HelperInterface $helper) {
-    $this->helper = $helper;
+  public function __construct(Validator $validator) {
+    $this->validator = $validator;
   }
 
   /**
@@ -54,7 +54,7 @@ class InstallProfileGeneratorCommands extends DrushCommands {
 
     if ($name && empty($machine_name)) {
       // Generate machine name from name.
-      $machine_name = $this->helper->convertToMachineName($name);
+      $machine_name = $this->validator->convertToMachineName($name);
     }
 
     if ($machine_name && empty($name)) {
@@ -62,7 +62,7 @@ class InstallProfileGeneratorCommands extends DrushCommands {
       $name = $machine_name;
     }
 
-    $this->helper->validate($name, $machine_name);
+    $this->validator->validate($name, $machine_name);
 
     if (!$this->io()->confirm(dt('About to generate a new install profile with the machine name "@machine_name". Continue?', ['@machine_name' => $machine_name]))) {
       // The user has chosen to not continue. There's no error.

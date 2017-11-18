@@ -46,12 +46,12 @@ function drush_install_profile_generator_install_profile_generate() {
   $machine_name = drush_get_option('machine_name', '');
   $description = drush_get_option('description', '');
 
-  /** @var \Drupal\install_profile_generator\Services\Helper $helper */
-  $helper = \Drupal::service('install_profile_generator.helper');
+  /** @var \Drupal\install_profile_generator\Services\Validator $validator */
+  $validator = \Drupal::service('install_profile_generator.validator');
 
   if ($name && empty($machine_name)) {
     // Generate machine name from name.
-    $machine_name = $helper->convertToMachineName($name);
+    $machine_name = $validator->convertToMachineName($name);
   }
 
   if ($machine_name && empty($name)) {
@@ -60,7 +60,7 @@ function drush_install_profile_generator_install_profile_generate() {
   }
 
   try {
-    $helper->validate($name, $machine_name);
+    $validator->validate($name, $machine_name);
   }
   catch (\Exception $e) {
     drush_set_error('install_profile_generate_validate', $e->getMessage());

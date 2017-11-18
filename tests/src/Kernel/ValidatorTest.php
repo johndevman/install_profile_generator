@@ -2,15 +2,15 @@
 
 namespace Drupal\Tests\install_profile_generator\Kernel {
 
-  use Drupal\install_profile_generator\Services\Helper;
+  use Drupal\install_profile_generator\Services\Validator;
   use Drupal\KernelTests\KernelTestBase;
 
   /**
-   * Tests the Helper service.
+   * Tests the Validator service.
    *
    * @group install_profile_generator
    */
-  class HelperTest extends KernelTestBase {
+  class ValidatorTest extends KernelTestBase {
 
     protected static $modules = ['system'];
 
@@ -19,8 +19,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
      */
     public function testValidate() {
       $this->installProfile('minimal');
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
-      $helper->validate('test', 'test');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $validator->validate('test', 'test');
       $this->addToAssertionCount(1);
     }
 
@@ -30,8 +30,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
     public function testValidateNoName() {
       $this->setExpectedException(\Exception::class, 'To generate a new profile using Drush you have to provide a name or a machine name for the new profile.');
       $this->installProfile('minimal');
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
-      $helper->validate('', 'test');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $validator->validate('', 'test');
     }
 
     /**
@@ -40,8 +40,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
     public function testValidateNoMachineName() {
       $this->setExpectedException(\Exception::class, 'To generate a new profile using Drush you have to provide a name or a machine name for the new profile.');
       $this->installProfile('minimal');
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
-      $helper->validate('test', '');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $validator->validate('test', '');
     }
 
     /**
@@ -50,8 +50,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
     public function testValidateInvalidMachineName() {
       $this->setExpectedException(\Exception::class, 'To generate a new profile using Drush you have to provide a valid machine name. Can only contain lowercase letters, numbers, and underscores.');
       $this->installProfile('minimal');
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
-      $helper->validate('test', 'test?');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $validator->validate('test', 'test?');
     }
 
     /**
@@ -61,8 +61,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
       $this->setExpectedException(\Exception::class, 'The current profile contains extensions. It is not possible to generate a new profile using Drush.');
       $this->installProfile('testing');
       $this->container->get('module_installer')->install(['drupal_system_listing_compatible_test']);
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'testing');
-      $helper->validate('test', 'test');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'testing');
+      $validator->validate('test', 'test');
     }
 
     /**
@@ -71,8 +71,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
     public function testValidateModuleNameClash() {
       $this->setExpectedException(\Exception::class, 'The machine name node already exists');
       $this->installProfile('minimal');
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
-      $helper->validate('test', 'node');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $validator->validate('test', 'node');
     }
 
     /**
@@ -81,8 +81,8 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
     public function testValidateThemeNameClash() {
       $this->setExpectedException(\Exception::class, 'The machine name classy already exists');
       $this->installProfile('minimal');
-      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
-      $helper->validate('test', 'classy');
+      $validator = new Validator(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $validator->validate('test', 'classy');
     }
 
     /**
