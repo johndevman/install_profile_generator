@@ -100,9 +100,9 @@ class Helper implements HelperInterface {
 
     // Ensure we won't create a profile with the same name as an existing
     // extension.
-    if ($this->moduleHandler->moduleExists($machine_name) ||
-      $this->themeHandler->themeExists($machine_name)
-    ) {
+    $modules = system_rebuild_module_data();
+    $themes = $this->themeHandler->rebuildThemeData();
+    if (isset($modules[$machine_name]) || isset($themes[$machine_name])) {
       throw new \Exception(dt('The machine name @machine_name already exists', ['@machine_name' => $machine_name]));
     }
 

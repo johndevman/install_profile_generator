@@ -66,6 +66,26 @@ namespace Drupal\Tests\install_profile_generator\Kernel {
     }
 
     /**
+     * Tests that machine name does not clash with a module.
+     */
+    public function testValidateModuleNameClash() {
+      $this->setExpectedException(\Exception::class, 'The machine name node already exists');
+      $this->installProfile('minimal');
+      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $helper->validate('test', 'node');
+    }
+
+    /**
+     * Tests that machine name does not clash with a theme.
+     */
+    public function testValidateThemeNameClash() {
+      $this->setExpectedException(\Exception::class, 'The machine name classy already exists');
+      $this->installProfile('minimal');
+      $helper = new Helper(\Drupal::service('app.root'), \Drupal::service('module_handler'), \Drupal::service('theme_handler'), \Drupal::service('transliteration'), 'minimal');
+      $helper->validate('test', 'classy');
+    }
+
+    /**
      * Installs a install profile for testing.
      *
      * @param $name
