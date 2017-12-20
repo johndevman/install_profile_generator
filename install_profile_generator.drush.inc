@@ -5,8 +5,6 @@
  * Drush commands for install_profile_generator.
  */
 
-use Drupal\Core\Config\FileStorage;
-use Drupal\Core\Serialization\Yaml;
 use Drush\Log\LogLevel;
 
 /**
@@ -73,69 +71,19 @@ function drush_install_profile_generator_install_profile_generate() {
     return drush_user_abort();
   }
 
-  // Create the profile directory.
-  $profile_path = \Drupal::root() . '/profiles/' . $machine_name;
-  /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-  $file_system = \Drupal::service('file_system');
-  if (!$file_system->mkdir($profile_path)) {
-    return drush_set_error(
-      'INSTALL_GENERATE_PROFILE_CREATE_PROFILE_DIRECTORY',
-      dt('Could not create @profile_path directory', ['@profile_path' => $profile_path])
-    );
+  /** @var \Drupal\install_profile_generator\Services\ProfileFactory $profile_factory */
+  $profile_factory = \Drupal::service('install_profile_generator.profile_factory');
+  $profile = $profile_factory->create($machine_name, $name, $description);
+  try {
+    $profile
+      ->create()
+      ->writeConfig()
+      ->install();
   }
-
-  // Create the profile .info.yml.
-  $info = [
-    'name' => $name,
-    'type' => 'profile',
-    'description' => $description,
-    // @todo - why is this not \Drupal::version?
-    'core' => '8.x',
-  ];
-  if (!file_put_contents("$profile_path/$machine_name.info.yml", Yaml::encode($info))) {
-    return drush_set_error(
-      'INSTALL_GENERATE_PROFILE_CREATE_PROFILE_DIRECTORY',
-      dt('Could not write @profile_path/@machine_name.info.yml', ['@profile_path' => $profile_path, '@machine_name' => $machine_name])
-    );
-  }
-
-  // Create profile's config/sync directory.
-  if (!$file_system->mkdir($profile_path . '/config/sync', NULL, TRUE)) {
-    return drush_set_error(
-      'INSTALL_GENERATE_PROFILE_CREATE_PROFILE_DIRECTORY',
-      dt('Could not create @config_sync directory', ['@@config_sync' => $profile_path . '/config/sync'])
-    );
-  }
-
-  // Export configuration.
-  $result = _drush_config_export('does_not_matter', $profile_path . '/config/sync', 'does_not_matter');
-  if (!$result) {
+  catch (\Exception $e) {
+    drush_set_error('install_profile_generate_profile', $e->getMessage());
+    // Exit with an error status.
     return FALSE;
-  }
-
-  // Change the site to use the new installation profile.
-  $extension_config = \Drupal::configFactory()->getEditable('core.extension');
-  $current_profile = $extension_config->get('profile');
-  $extension_config
-    // Change the current profile to the generator profile.
-    ->set('profile', $machine_name)
-    // Uninstall the Install Profile Generator module - it is a one time thing.
-    ->clear('module.install_profile_generator')
-    // Uninstall the current install profile.
-    ->clear('module.' . $current_profile)
-    // Install the current install profile. It will automatically go at the end.
-    ->set('module.' . $machine_name, 1000)
-    ->save();
-
-  // Make the same changes to the already exported configuration. We do it this
-  // way around so that we can be sure the configuration export and the
-  // core.extension update is successful.
-  $exported_config = new FileStorage($profile_path . '/config/sync');
-  if (!$exported_config->write('core.extension', $extension_config->get())) {
-    return drush_set_error(
-      'INSTALL_GENERATE_PROFILE_EXPORT_CONFIG',
-      dt('Could not write exported configuration to @config_sync directory', ['@config_sync' => $profile_path . '/config/sync'])
-    );
   }
 
   // We've changed the install profile and which extensions are running. We need
@@ -150,7 +98,7 @@ function drush_install_profile_generator_install_profile_generate() {
   // Try and make settings.php writable.
   if (!is_writable($settings_file)) {
     $perms = fileperms($settings_file);
-    @$file_system->chmod($settings_file, 0644);
+    @chmod($settings_file, 0644);
   }
 
   if (is_writable($settings_file)) {
@@ -180,7 +128,7 @@ function drush_install_profile_generator_install_profile_generate() {
 
   // Change the permissions back if we changed them.
   if ($perms) {
-    @$file_system->chmod($settings_file, $perms);
+    @chmod($settings_file, $perms);
   }
 
   drush_log(dt('Created new installation profile and exported configuration to it. The "Install Profile Generator" module has been uninstalled. To update the profile with any configuration changes use the "drush config-export" command.'), LogLevel::OK);

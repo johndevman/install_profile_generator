@@ -11,7 +11,7 @@ use Drupal\Core\Language\LanguageInterface;
  * Class InstallProfileGenerator.
  *
  * @internal
- *   Install profile generator's API are the drush commands.
+ *   Install profile generator's API are the Drush commands.
  */
 class Validator {
 

@@ -2,8 +2,7 @@
 
 namespace Drupal\install_profile_generator\Commands;
 
-use Drupal\Core\Config\FileStorage;
-use Drupal\Core\Serialization\Yaml;
+use Drupal\install_profile_generator\Services\ProfileFactory;
 use Drupal\install_profile_generator\Services\Validator;
 use Drush\Commands\DrushCommands;
 
@@ -20,13 +19,23 @@ class InstallProfileGeneratorCommands extends DrushCommands {
   protected $validator;
 
   /**
+   * Factory to create Profile objects.
+   *
+   * @var \Drupal\install_profile_generator\Services\ProfileFactory
+   */
+  protected $profileFactory;
+
+  /**
    * InstallProfileGeneratorCommands constructor.
    *
    * @param \Drupal\install_profile_generator\Services\Validator $validator
-   *   Service to actually do the generation.
+   *   Service to validate input.
+   * @param \Drupal\install_profile_generator\Services\ProfileFactory $profile_factory
+   *   Profile object factory to create and install the profile.
    */
-  public function __construct(Validator $validator) {
+  public function __construct(Validator $validator, ProfileFactory $profile_factory) {
     $this->validator = $validator;
+    $this->profileFactory = $profile_factory;
   }
 
   /**
@@ -66,63 +75,17 @@ class InstallProfileGeneratorCommands extends DrushCommands {
 
     if (!$this->io()->confirm(dt('About to generate a new install profile with the machine name "@machine_name". Continue?', ['@machine_name' => $machine_name]))) {
       // The user has chosen to not continue. There's no error.
-      // Hmmm no equivalent in Drush 9
+      // Hmmm no equivalent in Drush 9.
       // return drush_user_abort();
       return;
     }
 
-    // @todo inject \Drupal::root() \Drupal::service('file_system')
-    // Create the profile directory.
-    $profile_path = \Drupal::root() . '/profiles/' . $machine_name;
-    /** @var \Drupal\Core\File\FileSystemInterface $file_system */
-    $file_system = \Drupal::service('file_system');
-    if (!$file_system->mkdir($profile_path)) {
-      throw new \Exception(dt('Could not create @profile_path directory', ['@profile_path' => $profile_path]));
-    }
-
-    // Create the profile .info.yml.
-    $info = [
-      'name' => $name,
-      'type' => 'profile',
-      'description' => $description,
-      // @todo - why is this not \Drupal::version?
-      'core' => '8.x',
-    ];
-    if (!file_put_contents("$profile_path/$machine_name.info.yml", Yaml::encode($info))) {
-      throw new \Exception(dt('Could not write @profile_path/@machine_name.info.yml', ['@profile_path' => $profile_path, '@machine_name' => $machine_name]));
-    }
-
-    // Create profile's config/sync directory.
-    if (!$file_system->mkdir($profile_path . '/config/sync', NULL, TRUE)) {
-      throw new \Exception(dt('Could not create @config_sync directory', ['@@config_sync' => $profile_path . '/config/sync']));
-    }
-
-    // Run a full configuration export to the profile's config/sync directory.
-    drush_invoke_process('@self', 'config-export', [], ['destination' => $profile_path . '/config/sync']);
-
-    // Change the site to use the new installation profile.
-    // @todo inject?
-    $extension_config = \Drupal::configFactory()->getEditable('core.extension');
-    $current_profile = $extension_config->get('profile');
-    $extension_config
-      // Change the current profile to the generator profile.
-      ->set('profile', $machine_name)
-      // Uninstall the Install Profile Generator module, it is a one time thing.
-      ->clear('module.install_profile_generator')
-      // Uninstall the current install profile.
-      ->clear('module.' . $current_profile)
-      // Install the current install profile. It will automatically go at the
-      // end.
-      ->set('module.' . $machine_name, 1000)
-      ->save();
-
-    // Make the same changes to the already exported configuration. We do it
-    // this way around so that we can be sure the configuration export and the
-    // core.extension update is successful.
-    $exported_config = new FileStorage($profile_path . '/config/sync');
-    if (!$exported_config->write('core.extension', $extension_config->get())) {
-      throw new \Exception(dt('Could not write exported configuration to @config_sync directory', ['@config_sync' => $profile_path . '/config/sync']));
-    }
+    // Create the new install profile.
+    $profile = $this->profileFactory->create($machine_name, $name, $description);
+    $profile
+      ->create()
+      ->writeConfig()
+      ->install();
 
     // We've changed the install profile and which extensions are running. We
     // need to use the hammer.
