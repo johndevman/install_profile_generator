@@ -6,6 +6,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\FileStorage;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Serialization\Yaml;
+use Drush\Drush;
 
 /**
  * A profile object to manage the creation of the new install profile.
@@ -123,10 +124,16 @@ class Profile {
    * @throws \Exception
    */
   public function writeConfig() {
-    // Run a full configuration export to the profile's config/sync directory.
-    if (!drush_invoke_process('@self', 'config-export', [], ['destination' => $this->getProfilePath($this->machineName) . '/config/sync'])) {
+    $self = Drush::service('site.alias.manager')->getSelf();
+
+    $process = Drush::drush($self, 'config-export', [], ['destination' => $this->getProfilePath() . '/config/sync']);
+
+    try {
+      $process->mustRun();
+    } catch (\Exception $e) {
       throw new \Exception(dt('Could not export active config to @config_sync directory', ['@@config_sync' => $this->getProfilePath() . '/config/sync']));
     }
+
     return $this;
   }
 
