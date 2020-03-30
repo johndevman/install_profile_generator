@@ -1,6 +1,7 @@
 Install Profile Generator
 
-This is a fork of https://www.drupal.org/project/install_profile_generator
+This is a (hopefully) temporarily fork of https://www.drupal.org/project/install_profile_generator
+until the module gets updated to support the most stable version of Drupal.
 
 Originally written by alexpott and Eli-T
 
