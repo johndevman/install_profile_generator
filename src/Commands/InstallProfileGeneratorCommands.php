@@ -104,7 +104,7 @@ class InstallProfileGeneratorCommands extends DrushCommands {
     }
 
     if (is_writable($settings_file)) {
-      $settings['config_sync_directory'] = (object) [
+      $settings['settings']['config_sync_directory'] = (object) [
         'value' => $profile_path . '/config/sync',
         'required' => TRUE,
       ];
