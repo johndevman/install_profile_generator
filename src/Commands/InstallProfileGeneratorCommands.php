@@ -104,24 +104,11 @@ class InstallProfileGeneratorCommands extends DrushCommands {
     }
 
     if (is_writable($settings_file)) {
-      // Include any other config directories in the rewritten settings.php
-      // variable.
-      global $config_directories;
-      $settings = ['config_directories' => []];
-      foreach ($config_directories as $key => $config_directory) {
-        $settings['config_directories'][$key] = (object) [
-          'value' => $config_directory,
-          'required' => TRUE,
-        ];
-      }
-      $settings['config_directories'][CONFIG_SYNC_DIRECTORY] = (object) [
+      $settings['config_sync_directory'] = (object) [
         'value' => $profile_path . '/config/sync',
         'required' => TRUE,
       ];
-      $settings['settings']['install_profile'] = (object) [
-        'value' => $machine_name,
-        'required' => TRUE,
-      ];
+
       // Rewrite settings.php, which also sets the value as global variable.
       include_once \Drupal::root() . '/core/includes/install.inc';
       drupal_rewrite_settings($settings);
@@ -129,7 +116,7 @@ class InstallProfileGeneratorCommands extends DrushCommands {
 
     // If we couldn't write to settings.php tell the user what to do.
     if (!is_writable($settings_file)) {
-      $this->logger()->warning(dt("Add the following lines to $settings_file\n\$config_directories[CONFIG_SYNC_DIRECTORY] = '$profile_path/config/sync';\n\$settings['install_profile'] = '$machine_name';"));
+      $this->logger()->warning(dt("Add the following lines to $settings_file\n\$settings['config_sync_directory'] = '$profile_path/config/sync';"));
     }
 
     // Change the permissions back if we changed them.

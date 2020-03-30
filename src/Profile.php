@@ -102,8 +102,7 @@ class Profile {
       'name' => $this->name,
       'type' => 'profile',
       'description' => $this->description,
-      // @todo - why is this not \Drupal::version?
-      'core' => '8.x',
+      'core_version_requirement' => '^8.8 || ^9',
     ];
     if (!file_put_contents("$profile_path/{$this->machineName}.info.yml", Yaml::encode($info))) {
       throw new \Exception(dt('Could not write @profile_path/@profile_name.info.yml', ['@profile_path' => $profile_path, '@profile_name' => $this->machineName]));
